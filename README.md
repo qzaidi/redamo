@@ -1,9 +1,9 @@
-This is an experiment
+[![GoDoc](https://godoc.org/github.com/qzaidi/redamo?status.svg)](https://godoc.org/github.com/qzaidi/redamo)
 
-What if we speak the redis protocol, but use groupcache internally, and use dynamo as 
-a backing store.
+This is an experiment.
 
-So on write, we update groupcache and back it up in dynamo. On read, we fetch from groupcache, if not found
-from dynamodb. 
+What if we speak the redis protocol, but use dynamo as a backing store.
+
+So on write, we back it up in dynamo. On read, we fetch from dynamodb. There is no ttl.
 
 
