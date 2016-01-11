@@ -2,28 +2,28 @@ package main
 
 import (
 	redis "github.com/qzaidi/redamo/redis"
-  store "github.com/qzaidi/redamo/store"
+	store "github.com/qzaidi/redamo/store/dynamo"
 	logging "gopkg.in/tokopedia/logging.v1"
-  "strings"
 	"log"
 	"os"
+	"strings"
 	"syscall"
 )
 
 // a simple mapper, given a key, it returns table name, key column, value col
 // and the value of the key. our example has keys of the type
 // tblname:keycol:valcol:keyname, e.g. shop_login:sid:followers:11212
-func mapper(key string) (string,string,string,string) {
-  vals := strings.Split(key,":")
-  return vals[0],vals[1],vals[2],vals[3]
+func mapper(key string) (string, string, string, string) {
+	vals := strings.Split(key, ":")
+	return vals[0], vals[1], vals[2], vals[3]
 }
 
 func main() {
 	logging.LogInit()
 	port := 6379
 
-  store := store.NewDynamoModule(mapper)
-	server, err := redis.NewRedamoServer(port,store)
+	dyn := store.NewDynamoModule(mapper)
+	server, err := redis.NewRedamoServer(port, dyn)
 	if err != nil {
 		panic(err)
 	}
