@@ -14,8 +14,8 @@ import (
 func NewDynamoModule(keymap store.KeyMapper) *DynamoModule {
 
 	module := &DynamoModule{}
-	cfgdir := "etc"
-	cfg := module.config
+	cfgdir := "/etc"
+	cfg := &module.config
 	ok := logging.ReadModuleConfig(cfg, cfgdir, "dynamo") || logging.ReadModuleConfig(cfg, ".", "dynamo")
 
 	sess := session.New(&aws.Config{Region: aws.String("ap-southeast-1")})
@@ -24,9 +24,9 @@ func NewDynamoModule(keymap store.KeyMapper) *DynamoModule {
 		log.Println("failed to read dynamo config, using defaults")
 	} else {
 		sess = session.New(&aws.Config{
-			Region:     aws.String(cfg.Region),
-			Endpoint:   aws.String(cfg.Endpoint),
-			DisableSSL: aws.Bool(cfg.DisableSSL),
+			Region:     aws.String(cfg.Server.Region),
+			Endpoint:   aws.String(cfg.Server.Endpoint),
+			DisableSSL: aws.Bool(cfg.Server.DisableSSL),
 		})
 	}
 

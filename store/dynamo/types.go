@@ -7,13 +7,15 @@ import (
 
 type DynamoModule struct {
 	store.Store
-	config    *DynamoCfg
+	config    DynamoCfg
 	client    *dynamodb.DynamoDB
 	keyMapper store.KeyMapper
 }
 
 type DynamoCfg struct {
-	Region     string
-	Endpoint   string
-	DisableSSL bool
+  Server   struct {
+	  Region     string
+	  Endpoint   string
+	  DisableSSL bool
+  }
 }

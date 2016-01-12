@@ -3,6 +3,7 @@ package redis
 import (
 	"expvar"
 	"fmt"
+  "time"
 	redis "github.com/qzaidi/go-redis-server"
 	store "github.com/qzaidi/redamo/store"
 )
@@ -11,16 +12,18 @@ import (
 type RedamoHandler struct {
 	redis.DefaultHandler
 	store store.Store
+  start time.Time
 	tcp   *expvar.Int // total commands processed
 }
 
 func (h *RedamoHandler) Info() ([]byte, error) {
 	return []byte(fmt.Sprintf(
 		`#Server
-Version 0.0.1
+redamo_version 0.0.1
+uptime_in_seconds: %d
 #Stats
 total_commands_processed: %s
-`, h.tcp.String())), nil
+`, int(time.Since(h.start).Seconds()),h.tcp.String())), nil
 }
 
 func (h *RedamoHandler) Get(key string) ([]byte, error) {
@@ -37,6 +40,7 @@ func (h *RedamoHandler) Set(key string, val []byte) error {
 func NewRedamoServer(port int, store store.Store) (*redis.Server, error) {
 	redamo := &RedamoHandler{}
 	redamo.store = store
+  redamo.start = time.Now()
 	redamo.tcp = expvar.NewInt("tcp")
 	return redis.NewServer(redis.DefaultConfig().Port(port).Handler(redamo))
 }
