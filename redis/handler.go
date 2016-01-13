@@ -37,6 +37,11 @@ func (h *RedamoHandler) Set(key string, val []byte) error {
 	return h.store.Set(key, val)
 }
 
+func (h *RedamoHandler) Incrby(key string, val []byte) error {
+	h.tcp.Add(1)
+  return nil // TODO
+}
+
 func NewRedamoServer(port int, store store.Store) (*redis.Server, error) {
 	redamo := &RedamoHandler{}
 	redamo.store = store

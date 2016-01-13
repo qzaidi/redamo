@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/qzaidi/redamo/store"
 	logging "gopkg.in/tokopedia/logging.v1"
+  "strconv"
 	"log"
 )
 
@@ -42,6 +43,9 @@ func (d *DynamoModule) Set(key string, val []byte) error {
 	// get the table to be used, key column name,value column name, and the key value
 
 	tbl, kcol, vcol, kval := d.keyMapper(key)
+  if tbl == "" || kcol == "" || vcol == "" || kval == "" {
+    return fmt.Errorf("bad key")
+  }
 
 	params := &dynamodb.UpdateItemInput{
 		Key:              map[string]*dynamodb.AttributeValue{},
@@ -67,6 +71,11 @@ func (d *DynamoModule) Set(key string, val []byte) error {
 
 func (d *DynamoModule) Get(key string) ([]byte, error) {
 	tbl, kcol, vcol, kval := d.keyMapper(key)
+
+  if tbl == "" || kcol == "" || vcol == "" || kval == "" {
+    return nil,fmt.Errorf("bad key")
+  }
+
 	params := &dynamodb.GetItemInput{
 		Key:       map[string]*dynamodb.AttributeValue{},
 		TableName: aws.String(tbl),
@@ -92,4 +101,41 @@ func (d *DynamoModule) Get(key string) ([]byte, error) {
 	}
 
 	return nil, fmt.Errorf("value attribute not found: %s", vcol)
+}
+
+func (d *DynamoModule) Incrby(key string, val int) (int64,error) {
+	tbl, kcol, vcol, kval := d.keyMapper(key)
+
+  if tbl == "" || kcol == "" || vcol == "" || kval == "" {
+    return -1,fmt.Errorf("bad key")
+  }
+
+	params := &dynamodb.UpdateItemInput{
+		Key:              map[string]*dynamodb.AttributeValue{},
+		AttributeUpdates: map[string]*dynamodb.AttributeValueUpdate{},
+		TableName:        aws.String(tbl),
+    ReturnValues: aws.String("UPDATED_NEW"),
+	}
+
+	params.Key[kcol] = &dynamodb.AttributeValue{S: aws.String(kval)}
+
+	params.AttributeUpdates[vcol] = &dynamodb.AttributeValueUpdate{
+		Action: aws.String("ADD"),
+		Value: &dynamodb.AttributeValue{
+			N: aws.String(strconv.Itoa(val)),
+		},
+	}
+
+
+	data, err := d.client.UpdateItem(params)
+	if err != nil {
+		return -1,err
+	}
+
+  newval,err := strconv.ParseInt(*data.Attributes[vcol].N,10,64)
+  if err != nil {
+    return -1,err
+  }
+
+	return newval,nil
 }

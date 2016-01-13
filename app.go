@@ -14,8 +14,22 @@ import (
 // and the value of the key. our example has keys of the type
 // tblname:keycol:valcol:keyname, e.g. shop_login:sid:followers:11212
 func mapper(key string) (string, string, string, string) {
+
+  // defaults
+  tbl := "redamo"
+  kcol := "key"
+  vcol := "val"
+  pkey := key
+
 	vals := strings.Split(key, ":")
-	return vals[0], vals[1], vals[2], vals[3]
+
+  if len(vals) == 4 {
+    tbl = vals[0]
+    kcol = vals[1]
+    vcol = vals[2]
+    pkey = vals[3]
+  }
+	return tbl,kcol,vcol,pkey
 }
 
 func main() {
