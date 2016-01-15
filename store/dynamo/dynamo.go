@@ -44,10 +44,10 @@ func NewDynamoModule(keymap KeyMapper) *DynamoModule {
 func (d *DynamoModule) Set(key string, val []byte) error {
 
 	// get the table to be used, key column name,value column name, and the key value
-  kmap := d.keyMapper(key)
-  if kmap != nil {
+	kmap := d.keyMapper(key)
+	if kmap != nil {
 		return fmt.Errorf("bad key")
-  }
+	}
 
 	params := &dynamodb.UpdateItemInput{
 		Key:              map[string]*dynamodb.AttributeValue{},
@@ -59,15 +59,15 @@ func (d *DynamoModule) Set(key string, val []byte) error {
 
 	params.AttributeUpdates[kmap.Vcol] = &dynamodb.AttributeValueUpdate{
 		Action: aws.String("PUT"),
-		Value: &dynamodb.AttributeValue{},
-  }
+		Value:  &dynamodb.AttributeValue{},
+	}
 
-  switch kmap.Vtype[0] {
-    case 'S':
-      params.AttributeUpdates[kmap.Vcol].Value.S = aws.String(string(val))
-    case 'N':
-      params.AttributeUpdates[kmap.Vcol].Value.N = aws.String(string(val))
-  }
+	switch kmap.Vtype[0] {
+	case 'S':
+		params.AttributeUpdates[kmap.Vcol].Value.S = aws.String(string(val))
+	case 'N':
+		params.AttributeUpdates[kmap.Vcol].Value.N = aws.String(string(val))
+	}
 
 	_, err := d.client.UpdateItem(params)
 	if err != nil {
@@ -100,31 +100,31 @@ func (d *DynamoModule) Get(key string) ([]byte, error) {
 		return nil, nil
 	}
 
-  vcol := kmap.Vcol
+	vcol := kmap.Vcol
 
 	if resp.Item[vcol] != nil {
-    switch kmap.Vtype[0] {
-      case 'S':
-        if resp.Item[vcol].S == nil {
-          return nil,fmt.Errorf("WRONGTYPE Operation against a key holding the wrong kind of value")
-        }
-        return []byte(*resp.Item[vcol].S),nil
-      case 'N':
-        if resp.Item[vcol].S == nil {
-          return nil,fmt.Errorf("WRONGTYPE Operation against a key holding the wrong kind of value")
-        }
-        return []byte(*resp.Item[vcol].N),nil
-    }
+		switch kmap.Vtype[0] {
+		case 'S':
+			if resp.Item[vcol].S == nil {
+				return nil, fmt.Errorf("WRONGTYPE Operation against a key holding the wrong kind of value")
+			}
+			return []byte(*resp.Item[vcol].S), nil
+		case 'N':
+			if resp.Item[vcol].N == nil {
+				return nil, fmt.Errorf("WRONGTYPE Operation against a key holding the wrong kind of value")
+			}
+			return []byte(*resp.Item[vcol].N), nil
+		}
 	}
 
 	return nil, fmt.Errorf("value attribute not found: %s", vcol)
 }
 
-func (d *DynamoModule) Incrby(key string, val int) (int64, error) {
+func (d *DynamoModule) Incrby(key string, val []byte) (int, error) {
 	kmap := d.keyMapper(key)
 
 	if kmap == nil || kmap.Vtype[0] != 'N' {
-		return -1, fmt.Errorf("unknown key or incorrect config",key,kmap)
+		return -1, fmt.Errorf("unknown key or incorrect config", key, kmap)
 	}
 
 	params := &dynamodb.UpdateItemInput{
@@ -139,12 +139,13 @@ func (d *DynamoModule) Incrby(key string, val int) (int64, error) {
 	params.AttributeUpdates[kmap.Vcol] = &dynamodb.AttributeValueUpdate{
 		Action: aws.String("ADD"),
 		Value: &dynamodb.AttributeValue{
-			N: aws.String(strconv.Itoa(val)),
+			N: aws.String(string(val)),
 		},
 	}
 
 	data, err := d.client.UpdateItem(params)
 	if err != nil {
+		fmt.Println(err)
 		return -1, err
 	}
 
@@ -153,5 +154,9 @@ func (d *DynamoModule) Incrby(key string, val int) (int64, error) {
 		return -1, err
 	}
 
-	return newval, nil
+	return int(newval), nil
+}
+
+func (d *DynamoModule) Incr(key string) (int, error) {
+	return d.Incrby(key, []byte("1"))
 }

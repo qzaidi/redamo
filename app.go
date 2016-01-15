@@ -15,22 +15,22 @@ import (
 // tblname:keycol:valcol:keyname, e.g. shop_login:sid:followers:11212
 func mapper(key string) *store.Mapper {
 
-  // defaults
-  kmap := &store.Mapper {
-    Table: "redamo",
-    Kcol: "key",
-    Vcol: "val",
-    Keyval: "12345",
-  }
+	// defaults
+	kmap := &store.Mapper{
+		Table:  "redamo",
+		Kcol:   "key",
+		Vcol:   "val",
+		Keyval: "12345",
+	}
 
 	vals := strings.Split(key, ":")
 
-  if len(vals) == 4 {
-    kmap.Table = vals[0]
-    kmap.Kcol = vals[1]
-    kmap.Vcol = vals[2]
-    kmap.Keyval = vals[3]
-  }
+	if len(vals) == 4 {
+		kmap.Table = vals[0]
+		kmap.Kcol = vals[1]
+		kmap.Vcol = vals[2]
+		kmap.Keyval = vals[3]
+	}
 	return kmap
 }
 
