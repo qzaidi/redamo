@@ -26,11 +26,11 @@ func TestGet(t *testing.T) {
 }
 
 func TestSet(t *testing.T) {
-	e := d.Set("s:testing:11212", []byte("20"))
+	e := d.Set("s:numeric:11212", []byte("20"))
 	t.Log(e)
 }
 
 func TestIncrby(t *testing.T) {
-	val, e := d.Incrby("s:numeric:11212", 4)
+	val, e := d.Incrby("s:numeric:11212", []byte("4"))
 	t.Log(val, e)
 }

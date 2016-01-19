@@ -1,6 +1,7 @@
 package main
 
 import (
+  "flag"
 	redis "github.com/qzaidi/redamo/redis"
 	store "github.com/qzaidi/redamo/store/dynamo"
 	logging "gopkg.in/tokopedia/logging.v1"
@@ -35,6 +36,8 @@ func mapper(key string) *store.Mapper {
 }
 
 func main() {
+
+  flag.Parse()
 	logging.LogInit()
 	port := 6379
 

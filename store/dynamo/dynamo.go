@@ -5,9 +5,11 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/koding/cache"
 	logging "gopkg.in/tokopedia/logging.v1"
 	"log"
 	"strconv"
+	"time"
 )
 
 // here, support a function that maps a given redis key to a dynamodb table key and value field
@@ -37,6 +39,11 @@ func NewDynamoModule(keymap KeyMapper) *DynamoModule {
 		module.keyMapper = module.defaultMapper
 	}
 
+	if cfg.Server.CacheDuration > 0 {
+		logging.Debug.Println("activiating cache, TTL", cfg.Server.CacheDuration)
+		module.cache = cache.NewMemoryWithTTL(time.Duration(cfg.Server.CacheDuration) * time.Second)
+	}
+
 	return module
 }
 
@@ -45,7 +52,7 @@ func (d *DynamoModule) Set(key string, val []byte) error {
 
 	// get the table to be used, key column name,value column name, and the key value
 	kmap := d.keyMapper(key)
-	if kmap != nil {
+	if kmap == nil {
 		return fmt.Errorf("bad key")
 	}
 
@@ -74,10 +81,23 @@ func (d *DynamoModule) Set(key string, val []byte) error {
 		return err
 	}
 
+	if d.cache != nil {
+		d.cache.Set(key, val)
+	}
+
 	return nil
 }
 
 func (d *DynamoModule) Get(key string) ([]byte, error) {
+
+	if d.cache != nil {
+		val, err := d.cache.Get(key)
+		if err == nil && val != nil {
+      log.Println("found in cache",key)
+			return val.([]byte), nil
+		}
+	}
+
 	kmap := d.keyMapper(key)
 
 	if kmap == nil {
@@ -103,17 +123,25 @@ func (d *DynamoModule) Get(key string) ([]byte, error) {
 	vcol := kmap.Vcol
 
 	if resp.Item[vcol] != nil {
+		var val []byte
 		switch kmap.Vtype[0] {
 		case 'S':
 			if resp.Item[vcol].S == nil {
 				return nil, fmt.Errorf("WRONGTYPE Operation against a key holding the wrong kind of value")
 			}
-			return []byte(*resp.Item[vcol].S), nil
+			val = []byte(*resp.Item[vcol].S)
 		case 'N':
 			if resp.Item[vcol].N == nil {
 				return nil, fmt.Errorf("WRONGTYPE Operation against a key holding the wrong kind of value")
 			}
-			return []byte(*resp.Item[vcol].N), nil
+			val = []byte(*resp.Item[vcol].N)
+		}
+		if val != nil {
+      logging.Debug.Println("saving to cache",key)
+			if d.cache != nil {
+				d.cache.Set(key, val)
+			}
+			return val, nil
 		}
 	}
 
@@ -152,6 +180,10 @@ func (d *DynamoModule) Incrby(key string, val []byte) (int, error) {
 	newval, err := strconv.ParseInt(*data.Attributes[kmap.Vcol].N, 10, 64)
 	if err != nil {
 		return -1, err
+	}
+
+	if d.cache != nil {
+		d.cache.Set(key, newval)
 	}
 
 	return int(newval), nil
