@@ -93,8 +93,12 @@ func (d *DynamoModule) Get(key string) ([]byte, error) {
 	if d.cache != nil {
 		val, err := d.cache.Get(key)
 		if err == nil && val != nil {
-      log.Println("found in cache",key)
-			return val.([]byte), nil
+      var res []byte
+      ok := false
+      if res,ok = val.([]byte); !ok {
+        err = fmt.Errorf("Bad value in cache for %s",key)
+      }
+			return res,err
 		}
 	}
 
@@ -183,7 +187,8 @@ func (d *DynamoModule) Incrby(key string, val []byte) (int, error) {
 	}
 
 	if d.cache != nil {
-		d.cache.Set(key, newval)
+    // cache always stores []byte
+		d.cache.Set(key, []byte(fmt.Sprintf("%d",newval)))
 	}
 
 	return int(newval), nil
